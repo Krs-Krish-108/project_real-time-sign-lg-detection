@@ -14,7 +14,7 @@ import AboutPage from './pages/AboutPage';
 function App() {
   return (
     <ThemeProvider>
-      <BrowserRouter>
+      <BrowserRouter basename="/Real_time_sign_language_translation">
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route element={<AppLayout />}>
