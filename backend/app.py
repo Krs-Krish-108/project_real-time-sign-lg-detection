@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import base64
+import os
 import pickle
 from datetime import datetime
 from typing import Any
@@ -77,9 +78,20 @@ app = FastAPI(
     version="2.0.0",
 )
 
+# ── CORS Origins ───────────────────────────────────────────────────────────────
+# Set ALLOWED_ORIGINS env var on Render as a comma-separated list of allowed
+# origins, e.g. "https://your-app.vercel.app"
+# Falls back to allow all origins in development.
+_raw_origins = os.getenv("ALLOWED_ORIGINS", "*")
+_cors_origins: list[str] = (
+    [o.strip() for o in _raw_origins.split(",") if o.strip()]
+    if _raw_origins != "*"
+    else ["*"]
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],          # React dev server on any port
+    allow_origins=_cors_origins,
     allow_credentials=False,      # must be False when allow_origins=["*"]
     allow_methods=["*"],
     allow_headers=["*"],

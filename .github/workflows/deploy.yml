@@ -1,40 +1,57 @@
-name: Deploy to GitHub Pages
+name: CI — Frontend & Backend
 
 on:
   push:
-    branches: ['main'] # Ensure this matches your default branch name
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
-  build:
+  # ── Frontend: typecheck + build (Vercel handles actual deploy) ────────────────
+  frontend:
+    name: Frontend (Vite / React)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
       - name: Install dependencies
         run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
       - name: Build
         run: npm run build
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: './dist' # Ensure this matches your vite build output folder
+        env:
+          # Use a placeholder URL during CI build validation
+          VITE_API_URL: https://placeholder-backend.onrender.com
 
-  deploy:
-    needs: build
+  # ── Backend: lint + syntax check (Render handles actual deploy) ───────────────
+  backend:
+    name: Backend (FastAPI / Python)
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    defaults:
+      run:
+        working-directory: backend
+
     steps:
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check syntax
+        run: python -m py_compile app.py && echo "Syntax OK"

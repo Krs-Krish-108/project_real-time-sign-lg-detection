@@ -1,9 +1,10 @@
 // =============================================================================
 // API Service — Sign Language Recognition Backend
-// Backend runs at http://localhost:8000 (uvicorn app:app --reload)
+// In production, set VITE_API_URL to your Render backend URL.
+// In development, defaults to http://localhost:8000
 // =============================================================================
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
