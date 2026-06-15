@@ -28,7 +28,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 # ── TFLite Runtime (lightweight — no full TensorFlow needed) ──────────────────
-import tflite_runtime.interpreter as tflite
+from ai_edge_litert import interpreter as tflite
 
 # ── MediaPipe Tasks API ────────────────────────────────────────────────────────
 BaseOptions = mp.tasks.BaseOptions
