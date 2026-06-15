@@ -1,0 +1,11 @@
+__pycache__
+*.pyc
+*.pyo
+.git
+.github
+.env
+.env.example
+.python-version
+runtime.txt
+render.yaml
+README.md
