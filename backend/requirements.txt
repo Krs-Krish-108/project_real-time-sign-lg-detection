@@ -1,4 +1,4 @@
-# Sign Language Recognition — FastAPI Backend Dependencies
+# Sign Language Recognition — FastAPI Backend Dependencies (Runtime)
 # Install with: pip install -r requirements.txt
 
 # Web framework
@@ -6,8 +6,8 @@ fastapi>=0.110.0
 uvicorn[standard]>=0.29.0
 
 # ML / Computer Vision
-# Use tensorflow-cpu — Render has no GPU; this is smaller & faster to install
-tensorflow-cpu>=2.15.0
+# tflite-runtime is ~2MB vs ~500MB for full tensorflow — fits in Render free tier
+tflite-runtime>=2.14.0
 mediapipe>=0.10.9
 opencv-python-headless>=4.9.0.80
 numpy>=1.26.0,<2.0.0

@@ -23,10 +23,12 @@ from typing import Any
 import cv2
 import mediapipe as mp
 import numpy as np
-import tensorflow as tf
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+# ── TFLite Runtime (lightweight — no full TensorFlow needed) ──────────────────
+import tflite_runtime.interpreter as tflite
 
 # ── MediaPipe Tasks API ────────────────────────────────────────────────────────
 BaseOptions = mp.tasks.BaseOptions
@@ -39,15 +41,19 @@ CONFIDENCE_THRESHOLD: float = 0.70
 # Use absolute paths so the server finds the model files regardless of the
 # working directory — critical for Render and other cloud deployments.
 BASE_DIR: str = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH: str = os.path.join(BASE_DIR, "sign_language_model.keras")
+MODEL_PATH: str = os.path.join(BASE_DIR, "sign_language_model.tflite")
 ENCODER_PATH: str = os.path.join(BASE_DIR, "label_encoder.pkl")
 LANDMARKER_PATH: str = os.path.join(BASE_DIR, "hand_landmarker.task")
 # How many consecutive identical predictions before appending to word buffer
 STABLE_THRESHOLD: int = 5
 
-# ── Load Keras Model & Label Encoder ──────────────────────────────────────────
-print("Loading model and label encoder...")
-model = tf.keras.models.load_model(MODEL_PATH)
+# ── Load TFLite Model & Label Encoder ─────────────────────────────────────────
+print("Loading TFLite model and label encoder...")
+interpreter = tflite.Interpreter(model_path=MODEL_PATH)
+interpreter.allocate_tensors()
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
+print(f"TFLite model loaded — input shape: {input_details[0]['shape']}")
 
 with open(ENCODER_PATH, "rb") as _f:
     label_encoder = pickle.load(_f)
@@ -77,8 +83,8 @@ history: list[dict[str, Any]] = []
 # ── FastAPI App ────────────────────────────────────────────────────────────────
 app = FastAPI(
     title="Sign Language Recognition API",
-    description="Real-time ASL detection via MediaPipe + Keras",
-    version="2.0.0",
+    description="Real-time ASL detection via MediaPipe + TFLite",
+    version="2.1.0",
 )
 
 # ── CORS Origins ───────────────────────────────────────────────────────────────
@@ -125,7 +131,7 @@ def get_classes() -> dict:
 @app.post("/api/predict", tags=["Model"])
 def predict(req: PredictRequest) -> dict:
     """
-    Accept a base64-encoded JPEG frame, run MediaPipe + Keras inference,
+    Accept a base64-encoded JPEG frame, run MediaPipe + TFLite inference,
     and return the detected letter, confidence, accumulated word, and
     top-5 class probabilities.
     """
@@ -185,9 +191,12 @@ def predict(req: PredictRequest) -> dict:
         # Normalized (0-1) coordinates — frontend scales to canvas pixels
         landmarks.append({"x": lm.x, "y": lm.y, "z": lm.z})
 
-    # ── 4. Keras model inference ──────────────────────────────────────────────
+    # ── 4. TFLite model inference ─────────────────────────────────────────────
     input_data = np.asarray([coords], dtype=np.float32)
-    prediction = model.predict(input_data, verbose=0)          # shape (1, N)
+    interpreter.set_tensor(input_details[0]['index'], input_data)
+    interpreter.invoke()
+    prediction = interpreter.get_tensor(output_details[0]['index'])  # shape (1, N)
+
     predicted_idx = int(np.argmax(prediction))
     confidence = float(prediction[0][predicted_idx])
 
